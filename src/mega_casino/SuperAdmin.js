@@ -1,151 +1,172 @@
 import Casino from './Casino';
+import GameMachine from './GameMachine';
 import User from './User';
 
 
 class SuperAdmin extends User {
   constructor(name, money) {
     super(name, money);
-    this.casino = null;
+    this.casino = [];
   }
 
   createCasino(casinoName) {
     const newCasino = new Casino(casinoName);
-    this.casino = newCasino;
-
+    this.casino.push(newCasino);
     return newCasino;
   }
 
-  createGameMachine(credit) {
-    if (!this.casino) {
-      console.error("Please, create some casino.");
+  createGameMachine(credit, casinoName) {
+    if (this.casino.length === 0) {
+      console.error('Please, create some casino.');
 
       return;
     }
 
     if (credit >= this.money) {
-      console.error("Not enough money for create game machine");
+      console.error('Not enough money for create game machine');
 
       return;
     }
+    if (!casinoName) {
+      console.error('select casino!!!');
+      return;
+    }
+
+    const inCasino = this.casino.find(({ name }) => name === casinoName);
+
+    if (inCasino.name !== casinoName) return;
 
     const newMachine = new GameMachine(credit);
-    this.casino.machines.push(newMachine);
+    inCasino.machines.push(newMachine);
+
     this.money = this.money - credit;
 
     return newMachine;
   }
 
-  removeGameMachine(id) {
-    if (!this.casino) {
-      console.error("Please, create some casino.");
+  removeGameMachine(id, casinoName) {
+    if (this.casino.length === 0) {
+      console.error('Please, create some casino.');
 
       return;
     }
-
-    const machines = [...this.casino.machines];
-    if (!machines.length) {
-      console.error("Please, create some machine.");
+    const inCasino = this.casino.find(({ name }) => name === casinoName);
+    if (inCasino.name !== casinoName) return;
+    const machines = [...inCasino.machines];
+    if (machines.length === 0) {
+      console.error('Please, create some machine.');
 
       return;
     }
 
     if (machines[id] === undefined) {
-      console.error("Game machine ID is wrong.");
+      console.error('Game machine ID is wrong.');
 
       return;
     }
 
-    const cash = machines[id].bank;
+    const cash = machines[id].credit;
     machines.splice(id, 1);
     const machineCount = machines.length;
 
     machines.forEach(machine => {
       const profit = (cash / machineCount).toFixed(2);
-      machine.bank += +profit;
+      machine.credit = machine.credit + Number(profit);
     });
 
-    this.casino.machines = [...machines];
+    inCasino.machines = [...machines];
   }
 
-  takeMoneyFromCasino(sum) {
-    const machines = [...this.casino.machines];
-    const allBank = machines.reduce((acc, machine) => acc + machine.bank, 0);
+  takeMoneyFromCasino(sum, casinoName) {
+    const inCasino = this.casino.find(({ name }) => name === casinoName);
+    if (inCasino.name !== casinoName) return;
+    const machines = [...inCasino.machines];
+    const allCredit = machines.reduce((acc, machine) => acc + machine.bank, 0);
 
-    if (sum > allBank) {
-      console.error("Sorry, but sum is larget that casino bank");
+    if (sum > allCredit) {
+      console.error('Sorry, but sum is large that casino credit');
 
       return;
     }
 
-    const percentageFromBank = sum / allBank;
+    const percentageFromBank = sum / allCredit;
 
     machines.forEach(machine => {
-      machine.bank = +(machine.bank * (1 - percentageFromBank)).toFixed(2);
+      machine.credit = +(machine.credit * (1 - percentageFromBank)).toFixed(2);
     });
 
-    this.casino.machines = [...machines];
+    inCasino.machines = [...machines];
     this.money += sum;
   }
 
-  addMoneyToCasino(money) {
+  addMoneyToCasino(money, casinoName) {
+    const inCasino = this.casino.find(({ name }) => name === casinoName);
+    if (inCasino.name !== casinoName) return;
+    const machines = [...inCasino.machines];
     if (money <= 0) {
-      console.error("Please, enter sum > 0");
+      console.error('Please, enter sum > 0');
 
       return;
     }
 
-    if (!this.casino) {
-      console.error("Please, create some casino.");
+    if (this.casino.length === 0) {
+      console.error('Please, create some casino.');
 
       return;
     }
 
-    const length = this.casino.machines.length;
+    const length = inCasino.machines.length;
     if (!length) {
-      console.error("Please, create some machine.");
+      console.error(`Please, create some machine in casino ${inCasino.name}.`);
 
       return;
     }
 
     if (money >= this.money) {
-      console.error("Not enough money for add money to game machine");
+      console.error('Not enough money for add money to game machine');
 
       return;
     }
 
-    this.casino.machines.forEach(machine => {
-      machine.bank += money / length;
+    inCasino.machines.forEach(machine => {
+      machine.credit = machine.credit + money / length;
     });
 
-    this.money -= money;
+    this.money = this.money - money;
   }
 
-  addMoneyToGameMachine(id, money) {
+  addMoneyToGameMachine(id, money, casinoName) {
     if (money <= 0) {
-      console.error("Please, enter sum > 0");
+      console.error('Please, enter sum > 0');
 
       return;
     }
 
-    if (!this.casino) {
-      console.error("Please, create some casino.");
+    if (this.casino.length === 0) {
+      console.error('Please, create some casino.');
 
       return;
     }
 
     if (money >= this.money) {
-      console.error("Not enough money for add money to game machine");
+      console.error('Not enough money for add money to game machine');
 
       return;
     }
 
-    if (this.casino.machines[id] === undefined) {
-      console.error("Game machine ID is wrong.");
+    const inCasino = this.casino.find(({ name }) => name === casinoName);
+    if (inCasino.name !== casinoName) return;
+    const machines = [...inCasino.machines];
+
+    if (machines[id] === undefined) {
+      console.error('Game machine ID is wrong.');
 
       return;
     }
 
-    this.money -= money;
-    this.casino.machines[id].bank += money;
+    this.money = this.money - money;
+    machines[id].credit = machines[id].credit + money;
   }
 }
+
+export default SuperAdmin;
